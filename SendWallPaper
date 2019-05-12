@@ -1,0 +1,99 @@
+from wxpy import *
+import time,datetime
+import os,sys
+import requests
+from GetWallPaperAndSend.GetWallPaper import GetMitao
+
+class SaveAndSendImg(object):
+    def __init__(self,path):
+        self.sended=[]
+        self.path=path
+
+    # 获取图片地址响应
+    def getImgRequest(self,img):
+        r = requests.get(img)
+        return r
+
+    # 保存图片至本地
+    def SaveImg(self):
+        # 抓取图片并保存至本地
+        wallpaper = GetMitao().getWallPaper()
+        files = os.listdir(self.path)
+        # 将未保存的图片保存
+        for img in list(wallpaper.keys()):
+            jpg=img+'.jpg'
+            if jpg not in files:
+                img_pos = wallpaper[img]
+                img = self.getImgRequest(img_pos)
+                f = open(self.path + '\\' + jpg, 'wb')
+                f.write(img.content)
+                f.close()
+                time.sleep(0.5)
+        print('壁纸保存完毕！.')
+
+    def Send(self):
+        while True:
+            # 初始化缓存机器人登录
+            bot = Bot(cache_path=True)
+            # 获取人物
+            ying = bot.friends().search(u'萦')[0]
+            zhuo = bot.friends().search(u'林')[0]
+            bot.file_helper.send('壁纸分享中...')
+            # 获取时间，到达时间点则分享
+            hour=int(datetime.datetime.now().strftime('%H'))
+            if hour==9:
+                # 获取新图片并保存
+                self.SaveImg()
+                # 记录壁纸张数
+                pic_number=0
+                # 获取文件夹所有图片
+                files = sorted(os.listdir(self.path))
+                # 发送今日份信息
+                ying.send('今日份壁纸送到啦！')
+                bot.file_helper.send('今日份壁纸送到啦！')
+                zhuo.send('今日份壁纸送到啦！')
+                # 发送图片
+                for name in files:
+                    img = self.path+'\\'+name
+                    # 将图片名字数字字符转化为文字名字
+                    params = name.split('.')[0]
+                    img_name=''
+                    while params:
+                        word = params[:5]
+                        img_name += chr(int(word))
+                        params = params[5:]
+                        if len(params) == 5:
+                            break
+                    img_name+=chr(int(params))
+                    img_name = 'WallPaperName:'+img_name
+                    try:
+                        if name not in self.sended:
+                            print('开始分享第%d张壁纸'%(pic_number+1))
+                            # 微信发送壁纸
+                            ying.send(img_name)
+                            ying.send_image(img)
+                            #
+                            bot.file_helper.send(img_name)
+                            bot.file_helper.send_image(img)
+                            #
+                            zhuo.send(img_name)
+                            zhuo.send_image(img)
+                            # 保存已发送的壁纸
+                            self.sended.append(name)
+                            # 记录壁纸张数
+                            pic_number+=1
+                        else:
+                            continue
+                        # 每日推送3张后退出等待
+                        if pic_number==3:
+                            break
+                        time.sleep(3)
+                    except ResponseError as e:
+                        print('壁纸发送出现问题:',e.err_code,e.err_msg)
+                        sys.exit()
+                print('->等待明日壁纸分享...')
+            time.sleep(3600)
+
+if __name__=='__main__':
+    # 壁纸抓取、存储与定时分享
+    SaveAndSendImg(r'G:\WallPaper').Send()
