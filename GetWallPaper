@@ -1,0 +1,130 @@
+import urllib
+import requests
+import re,time
+import socket
+
+class GetMitao(object):
+    def __init__(self):
+        self.ip = 'http://www.mitozhi.com/'
+        self.wallpaper={}
+
+    def getHtmls(self):
+        # 解析网页
+        ip = self.ip
+        html = urllib.request.urlopen(ip).read()
+        html = html.decode('utf-8')
+        # 获取栏目的内容列表
+        content = '<li class="col-xs-2"><a class="text-overflow" href="/.*?>'
+        hot_html = 'http://www.mitozhi.com/shoujibizhi/'
+        reg = re.compile(content)
+        selected = reg.findall(html)
+        # print(selected) ## 打印所有的网页地址测试
+        blank = [elem.split('/')[-2] for elem in selected]
+        # 获取壁纸网页
+        htmls = [];hot_end=100;end = 30
+        # 添加其他类型壁纸网页
+        for trans in blank:
+            if trans == 'wenzikong':
+                for i in range(1, end):
+                    wenzi = hot_html + trans + '/list_14_' + str(i) + '.html'
+                    # print(wenzi)
+                    htmls.append(wenzi)
+            if trans == 'yijingfengge':
+                for i in range(1, end):
+                    yijing = hot_html + trans + '/list_19_' + str(i) + '.html'
+                    # print(yijing)
+                    htmls.append(yijing)
+            if trans == 'qinglvbizhi':
+                for i in range(1, end):
+                    qinglv = hot_html + trans + '/list_18_' + str(i) + '.html'
+                    # print(qinglv)
+                    htmls.append(qinglv)
+            if trans == 'gexinglinglei':
+                for i in range(1, end):
+                    gexing = hot_html + trans + '/list_17_' + str(i) + '.html'
+                    # print(gexing)
+                    htmls.append(gexing)
+            if trans == 'yingshimingxing':
+                for i in range(1, end):
+                    mingxing = hot_html + trans + '/list_16_' + str(i) + '.html'
+                    # print(mingxing)
+                    htmls.append(mingxing)
+            if trans == 'youxibizhi':
+                for i in range(1, end):
+                    youxi = hot_html + trans + '/list_15_' + str(i) + '.html'
+                    # print(youxi)
+                    htmls.append(youxi)
+            if trans == 'chongwubizhi':
+                for i in range(1, end):
+                    chongwu = hot_html + trans + '/list_21_' + str(i) + '.html'
+                    # print(chongwu)
+                    htmls.append(chongwu)
+            if trans == 'katong':
+                for i in range(1, end):
+                    katong = hot_html + trans + '/list_13_' + str(i) + '.html'
+                    # print(katong)
+                    htmls.append(katong)
+            if trans == 'suopingbizhi':
+                for i in range(1, end):
+                    suoping = hot_html + trans + '/list_20_' + str(i) + '.html'
+                    # print(suoping)
+                    htmls.append(suoping)
+            if trans == 'liaotianbeijing':
+                for i in range(1, end):
+                    liaotian = hot_html + trans + '/list_26_' + str(i) + '.html'
+                    # print(liaotian)
+                    htmls.append(liaotian)
+            if trans == 'meinvbizhi':
+                for i in range(1, end):
+                    meinv = hot_html + trans + '/list_25_' + str(i) + '.html'
+                    # print(meinv)
+                    htmls.append(meinv)
+        #添加热门壁纸类型的网址
+        for i in range(1,hot_end+1):
+            remen=hot_html + '/list_11_' + str(i) + '.html'
+            htmls.append(remen)
+        return htmls
+
+    # 获取图片及图片名字保存至字典
+    def getWallPaper(self):
+        htmls=self.getHtmls()
+        for url in htmls[:]:
+            try:
+                page = urllib.request.Request(url)
+                NET_STATUS = False
+                while not NET_STATUS:
+                    try:
+                        # 获取页面的图片内容
+                        html = urllib.request.urlopen(page,data=None,timeout=3).read()
+                        html = html.decode('utf-8')
+                        # 获取图片及图片名字信息
+                        reg = '<img src="http://.*? class="'
+                        img = re.compile(reg)
+                        imglist = img.findall(html)
+                        # 将图片及图片名字保存为字典
+                        for jpg in imglist:
+                            # 图片地址
+                            pos='http://.*?"'
+                            pos=re.compile(pos)
+                            jpg_pos=pos.findall(jpg)[0][:-1]
+                            # 图片名字
+                            patten='[\u4e00-\u9fa5]'
+                            chinese=re.compile(patten)
+                            chinese=''.join(chinese.findall(jpg))
+                            name=''.join([str(ord(elem)) for elem in chinese])
+                            # 存入字典
+                            if name in list(self.wallpaper.keys()):
+                                continue
+                            else:
+                                self.wallpaper[name]=jpg_pos
+                            print('已抓取图片数:',len(list(self.wallpaper.keys())),name) ##打印获取的图片名字进行测试
+                            time.sleep(0.5)
+                        break
+                    except socket.timeout:
+                        NET_STATUS = False
+            except:
+                continue
+        print('壁纸采集完毕！')
+        return self.wallpaper
+
+# print(GetMitao().GetWallPaper())
